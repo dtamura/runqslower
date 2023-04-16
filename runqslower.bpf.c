@@ -15,11 +15,18 @@ const volatile __u64 min_us = 0;
 const volatile pid_t targ_pid = 0;
 const volatile pid_t targ_tgid = 0;
 
-struct {
+typedef struct
+{
+	__u64 ts;
+	int target_cpu;
+} waking_up_info_t;
+
+struct
+{
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 10240);
 	__type(key, u32);
-	__type(value, u64);
+	__type(value, waking_up_info_t);
 } start SEC(".maps");
 
 struct {
@@ -59,7 +66,12 @@ static int trace_enqueue(u32 tgid, u32 pid)
 		return 0;
 
 	ts = bpf_ktime_get_ns();
-	bpf_map_update_elem(&start, &pid, &ts, 0);
+
+	waking_up_info_t val;
+	__builtin_memset(&val, 0, sizeof(val));
+	val.ts = ts;
+	bpf_map_update_elem(&start, &pid, &val, 0);
+
 	return 0;
 }
 
@@ -68,6 +80,7 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 	struct event event = {};
 	u64 *tsp, delta_us;
 	u32 pid;
+	waking_up_info_t *valp;
 
 	u64 switch_ts = bpf_ktime_get_ns();
 
@@ -78,9 +91,10 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 	pid = BPF_CORE_READ(next, pid);
 
 	/* fetch timestamp and calculate delta */
-	tsp = bpf_map_lookup_elem(&start, &pid);
-	if (!tsp)
+	valp = bpf_map_lookup_elem(&start, &pid);
+	if (!valp)
 		return 0;   /* missed enqueue */
+	tsp = &valp->ts;
 
 	delta_us = (switch_ts - *tsp) / 1000;
 	if (min_us && delta_us <= min_us)
