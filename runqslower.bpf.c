@@ -69,6 +69,8 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 	u64 *tsp, delta_us;
 	u32 pid;
 
+	u64 switch_ts = bpf_ktime_get_ns();
+
 	/* ivcsw: treat like an enqueue event and store timestamp */
 	if (get_task_state(prev) == TASK_RUNNING)
 		trace_enqueue(BPF_CORE_READ(prev, tgid), BPF_CORE_READ(prev, pid));
@@ -80,13 +82,14 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 	if (!tsp)
 		return 0;   /* missed enqueue */
 
-	delta_us = (bpf_ktime_get_ns() - *tsp) / 1000;
+	delta_us = (switch_ts - *tsp) / 1000;
 	if (min_us && delta_us <= min_us)
 		return 0;
 
 	event.pid = pid;
 	event.prev_pid = BPF_CORE_READ(prev, pid);
 	event.delta_us = delta_us;
+	event.switch_time = switch_ts;
 	bpf_probe_read_kernel_str(&event.task, sizeof(event.task), next->comm);
 	bpf_probe_read_kernel_str(&event.prev_task, sizeof(event.prev_task), prev->comm);
 

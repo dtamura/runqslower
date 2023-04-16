@@ -8,6 +8,7 @@ struct event {
 	__u8 task[TASK_COMM_LEN];
 	__u8 prev_task[TASK_COMM_LEN];
 	__u64 delta_us;
+	__u64 switch_time;
 	pid_t pid;
 	pid_t prev_pid;
 };

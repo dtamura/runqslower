@@ -35,6 +35,7 @@ rm -rf go1.19.6.linux-amd64.tar.gz
 ```sh
 go mod init runqslower
 go get github.com/cilium/ebpf
+go get github.com/shirou/gopsutil/v3/host
 ```
 
 ### generate vmlinux.h
