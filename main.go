@@ -48,21 +48,32 @@ func main() {
 	defer bpfObjs.Close()
 
 	// BPF Programのアタッチ
-	tp1, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeup})
-	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
-	}
-	defer tp1.Close()
-	tp2, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeupNew})
-	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
-	}
-	defer tp2.Close()
+	// tp1, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeup})
+	// if err != nil {
+	// 	log.Fatalf("opening raw tracepoint: %s", err)
+	// }
+	// defer tp1.Close()
+	// tp2, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeupNew})
+	// if err != nil {
+	// 	log.Fatalf("opening raw tracepoint: %s", err)
+	// }
+	// defer tp2.Close()
 	tp3, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedSwitch})
 	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
+		log.Fatalf("opening raw tracepoint: %s", err)
 	}
 	defer tp3.Close()
+
+	tp4, err := link.Tracepoint("sched", "sched_wakeup", bpfObjs.TpSchedWakeup, nil)
+	if err != nil {
+		log.Fatalf("opening tracepoint: %s", err)
+	}
+	defer tp4.Close()
+	tp5, err := link.Tracepoint("sched", "sched_wakeup_new", bpfObjs.TpSchedWakeupNew, nil)
+	if err != nil {
+		log.Fatalf("opening tracepoint: %s", err)
+	}
+	defer tp5.Close()
 
 	// perf event readerをオープンする
 	rd, err := perf.NewReader(bpfObjs.Events, os.Getpagesize())
@@ -87,7 +98,7 @@ func main() {
 
 	log.Println("Waiting for events..")
 
-	fmt.Printf("%-32s %-16s %-6s %14s %-16s %-6s\n", "SWITCH_TIME", "COMM", "TID", "LAT(us)", "PREV COMM", "PREV TID")
+	fmt.Printf("%-32s %-6s %-16s %-6s %14s %-16s %-6s\n", "SWITCH_TIME", "CPU_ID", "COMM", "TID", "LAT(us)", "PREV COMM", "PREV TID")
 
 	// カーネル時刻の変換用
 	bootTimeSec, _ = host.BootTime()
@@ -112,8 +123,9 @@ func main() {
 		}
 
 		fmt.Printf(
-			"%-32s %-16s %-6d %14d %-16s %-6d\n",
+			"%-32s %-6d %-16s %-6d %14d %-16s %-6d\n",
 			formatTimestamp(event.SwitchTime),
+			event.TargetCpu,
 			unix.ByteSliceToString(event.Task[:]),
 			event.Pid,
 			event.DeltaUs,
