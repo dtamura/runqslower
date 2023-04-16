@@ -1,11 +1,13 @@
+// +build ignore
+
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2019 Facebook
-#include <vmlinux.h>
+#include "vmlinux.h"
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
+#include <bpf/bpf_core_read.h>
 #include "runqslower.h"
-#include "core_fixes.bpf.h"
 
 #define TASK_RUNNING	0
 
@@ -25,6 +27,24 @@ struct {
 	__uint(key_size, sizeof(u32));
 	__uint(value_size, sizeof(u32));
 } events SEC(".maps");
+
+
+struct task_struct___o {
+	volatile long int state;
+} __attribute__((preserve_access_index));
+
+struct task_struct___x {
+	unsigned int __state;
+} __attribute__((preserve_access_index));
+
+static __always_inline __s64 get_task_state(void *task)
+{
+	struct task_struct___x *t = task;
+
+	if (bpf_core_field_exists(t->__state))
+		return BPF_CORE_READ(t, __state);
+	return BPF_CORE_READ((struct task_struct___o *)task, state);
+}
 
 /* record enqueue timestamp */
 static int trace_enqueue(u32 tgid, u32 pid)
@@ -92,24 +112,6 @@ int BPF_PROG(sched_wakeup_new, struct task_struct *p)
 
 SEC("tp_btf/sched_switch")
 int BPF_PROG(sched_switch, bool preempt, struct task_struct *prev, struct task_struct *next)
-{
-	return handle_switch(ctx, prev, next);
-}
-
-SEC("raw_tp/sched_wakeup")
-int BPF_PROG(handle_sched_wakeup, struct task_struct *p)
-{
-	return trace_enqueue(BPF_CORE_READ(p, tgid), BPF_CORE_READ(p, pid));
-}
-
-SEC("raw_tp/sched_wakeup_new")
-int BPF_PROG(handle_sched_wakeup_new, struct task_struct *p)
-{
-	return trace_enqueue(BPF_CORE_READ(p, tgid), BPF_CORE_READ(p, pid));
-}
-
-SEC("raw_tp/sched_switch")
-int BPF_PROG(handle_sched_switch, bool preempt, struct task_struct *prev, struct task_struct *next)
 {
 	return handle_switch(ctx, prev, next);
 }

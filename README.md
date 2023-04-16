@@ -36,3 +36,18 @@ rm -rf go1.19.6.linux-amd64.tar.gz
 go mod init runqslower
 go get github.com/cilium/ebpf
 ```
+
+### generate vmlinux.h
+```sh
+bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+```
+
+
+Build
+------------------
+
+```sh
+go generate
+go run -exec=sudo .
+CGO_ENABLED=0 go build .
+```

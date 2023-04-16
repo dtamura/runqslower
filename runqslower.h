@@ -5,11 +5,14 @@
 #define TASK_COMM_LEN 16
 
 struct event {
-	char task[TASK_COMM_LEN];
-	char prev_task[TASK_COMM_LEN];
+	__u8 task[TASK_COMM_LEN];
+	__u8 prev_task[TASK_COMM_LEN];
 	__u64 delta_us;
 	pid_t pid;
 	pid_t prev_pid;
 };
+
+// Force emitting struct event into the ELF.
+const struct event *unused __attribute__((unused));
 
 #endif /* __RUNQSLOWER_H */
