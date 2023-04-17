@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -16,8 +17,14 @@ var rootCmd = &cobra.Command{
 	Long:  `Trace high run queue latency.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		runqslower()
+		targetPid, _ := cmd.Flags().GetUint32("pid")
+		minUs := uint64(10000)
+		if len(args) > 0 {
+			minUs, _ = strconv.ParseUint(args[0], 10, 64)
+		}
+		runqslower(minUs, targetPid)
 	},
 }
 
@@ -39,5 +46,6 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().Uint32P("pid", "p", 0, "trace this PID only")
+
 }

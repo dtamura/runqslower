@@ -24,7 +24,7 @@ var (
 	bootTimeSec uint64
 )
 
-func runqslower() {
+func runqslower(minUs uint64, targetPid uint32) {
 
 	// Load pre-compiled programs into the kernel.
 	bpfObjs := bpfObjects{}
@@ -34,8 +34,8 @@ func runqslower() {
 	}
 	// bpfObject中の定数を書き換え
 	consts := map[string]interface{}{
-		"targ_pid":  uint32(0), // pid_t 型のサイズ
-		"min_us":    uint64(10000),
+		"targ_pid":  targetPid, // pid_t 型のサイズ
+		"min_us":    minUs,
 		"targ_tgid": uint32(0),
 	}
 	if err := spec.RewriteConstants(consts); err != nil {
