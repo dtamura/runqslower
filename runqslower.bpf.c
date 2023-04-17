@@ -2,11 +2,13 @@
 
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2019 Facebook
-#include "runqslower.h"
 #include "vmlinux.h"
+
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
+
+#include "runqslower.h"
 
 #define TASK_RUNNING 0
 
@@ -49,7 +51,7 @@ static __always_inline __s64 get_task_state(void *task) {
 }
 
 /* record enqueue timestamp */
-static int trace_enqueue(u32 tgid, u32 pid) {
+static int __attribute__((unused)) trace_enqueue(u32 tgid, u32 pid) {
     u64 ts;
 
     if (!pid)
@@ -71,7 +73,7 @@ static int trace_enqueue(u32 tgid, u32 pid) {
     return 0;
 }
 
-static int __attribute__((unused)) trace_enqueue2(u32 pid, int target_cpu) {
+static int trace_enqueue2(u32 pid, int target_cpu) {
 
     u64 ts = bpf_ktime_get_ns();
     waking_up_info_t val;
@@ -144,16 +146,6 @@ int tp_sched_wakeup(struct sched_wakeup_args *ctx) {
 SEC("tracepoint/sched_wakeup_new")
 int tp_sched_wakeup_new(struct sched_wakeup_args *ctx) {
     return trace_enqueue2(ctx->pid, ctx->target_cpu);
-}
-
-SEC("tp_btf/sched_wakeup")
-int BPF_PROG(sched_wakeup, struct task_struct *p) {
-    return trace_enqueue(p->tgid, p->pid);
-}
-
-SEC("tp_btf/sched_wakeup_new")
-int BPF_PROG(sched_wakeup_new, struct task_struct *p) {
-    return trace_enqueue(p->tgid, p->pid);
 }
 
 SEC("tp_btf/sched_switch")
