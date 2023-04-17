@@ -48,16 +48,6 @@ func main() {
 	defer bpfObjs.Close()
 
 	// BPF Programのアタッチ
-	// tp1, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeup})
-	// if err != nil {
-	// 	log.Fatalf("opening raw tracepoint: %s", err)
-	// }
-	// defer tp1.Close()
-	// tp2, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeupNew})
-	// if err != nil {
-	// 	log.Fatalf("opening raw tracepoint: %s", err)
-	// }
-	// defer tp2.Close()
 	tp3, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedSwitch})
 	if err != nil {
 		log.Fatalf("opening raw tracepoint: %s", err)
