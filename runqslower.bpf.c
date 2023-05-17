@@ -70,6 +70,7 @@ static int trace_enqueue(u32 tgid, u32 pid, int target_cpu)
 	waking_up_info_t val;
 	__builtin_memset(&val, 0, sizeof(val));
 	val.ts = ts;
+	val.target_cpu = target_cpu;
 	bpf_map_update_elem(&start, &pid, &val, 0);
 
 	return 0;
@@ -106,6 +107,9 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 	event.switch_time = switch_ts;
 	bpf_probe_read_kernel_str(&event.task, sizeof(event.task), next->comm);
 	bpf_probe_read_kernel_str(&event.prev_task, sizeof(event.prev_task), prev->comm);
+	event.wakeup_target_cpu = valp->target_cpu;
+	event.cpu = BPF_CORE_READ(next, cpu);
+	event.prev_cpu = BPF_CORE_READ(prev, cpu);
 
 	/* output */
 	bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU,

@@ -11,6 +11,9 @@ struct event {
 	__u64 switch_time;
 	pid_t pid;
 	pid_t prev_pid;
+	int cpu;
+	int prev_cpu;
+	int wakeup_target_cpu;
 };
 
 // Force emitting struct event into the ELF.

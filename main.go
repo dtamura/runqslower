@@ -87,7 +87,7 @@ func main() {
 
 	log.Println("Waiting for events..")
 
-	fmt.Printf("%-32s %-16s %-6s %14s %-16s %-6s\n", "SWITCH_TIME", "COMM", "TID", "LAT(us)", "PREV COMM", "PREV TID")
+	fmt.Printf("%-32s %-6s %-16s %-6s %14s %-8s %-16s %-8s %-12s\n", "SWITCH_TIME", "CPU", "COMM", "TID", "LAT(us)", "PREV_CPU", "PREV COMM", "PREV TID", "WAKEUP_CPU")
 
 	// カーネル時刻の変換用
 	bootTimeSec, _ = host.BootTime()
@@ -112,13 +112,16 @@ func main() {
 		}
 
 		fmt.Printf(
-			"%-32s %-16s %-6d %14d %-16s %-6d\n",
+			"%-32s %-6d %-16s %-6d %14d %-8d %-16s %-8d %-12d\n",
 			formatTimestamp(event.SwitchTime),
+			event.Cpu,
 			unix.ByteSliceToString(event.Task[:]),
 			event.Pid,
 			event.DeltaUs,
+			event.PrevCpu,
 			unix.ByteSliceToString(event.PrevTask[:]),
 			event.PrevPid,
+			event.WakeupTargetCpu,
 		)
 	}
 }
