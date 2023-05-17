@@ -48,19 +48,19 @@ func main() {
 	defer bpfObjs.Close()
 
 	// BPF Programのアタッチ
-	tp1, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeup})
+	tp1, err := link.AttachRawTracepoint(link.RawTracepointOptions{Name: "sched_wakeup", Program: bpfObjs.SchedWakeup})
 	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
+		log.Fatalf("opening sched_wakeup: %s", err)
 	}
 	defer tp1.Close()
-	tp2, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeupNew})
+	tp2, err := link.AttachRawTracepoint(link.RawTracepointOptions{Name: "sched_wakeup_new", Program: bpfObjs.SchedWakeupNew})
 	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
+		log.Fatalf("opening sched_wakeup_new: %s", err)
 	}
 	defer tp2.Close()
-	tp3, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedSwitch})
+	tp3, err := link.AttachRawTracepoint(link.RawTracepointOptions{Name: "sched_switch", Program: bpfObjs.SchedSwitch})
 	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
+		log.Fatalf("opening sched_switch: %s", err)
 	}
 	defer tp3.Close()
 

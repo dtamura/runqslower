@@ -54,7 +54,7 @@ static __always_inline __s64 get_task_state(void *task)
 }
 
 /* record enqueue timestamp */
-static int trace_enqueue(u32 pid)
+static int trace_enqueue(u32 pid, int target_cpu)
 {
 	u64 ts;
 
@@ -68,6 +68,7 @@ static int trace_enqueue(u32 pid)
 	waking_up_info_t val;
 	__builtin_memset(&val, 0, sizeof(val));
 	val.ts = ts;
+	val.target_cpu = target_cpu;
 	bpf_map_update_elem(&start, &pid, &val, 0);
 
 	return 0;
@@ -84,7 +85,7 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 
 	/* ivcsw: treat like an enqueue event and store timestamp */
 	if (get_task_state(prev) == TASK_RUNNING)
-		trace_enqueue(BPF_CORE_READ(prev, pid));
+		trace_enqueue(BPF_CORE_READ(prev, pid), BPF_CORE_READ(prev, cpu));
 
 	pid = BPF_CORE_READ(next, pid);
 
@@ -113,21 +114,28 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 	return 0;
 }
 
-SEC("tp_btf/sched_wakeup")
-int BPF_PROG(sched_wakeup, struct task_struct *p)
+
+SEC("raw_tracepoint/sched_wakeup")
+int sched_wakeup(struct bpf_raw_tracepoint_args *ctx)
 {
-	return trace_enqueue(p->pid);
+	struct task_struct *p = (struct task_struct *)ctx->args[0];
+	return trace_enqueue(BPF_CORE_READ(p, pid), BPF_CORE_READ(p, cpu));
 }
 
-SEC("tp_btf/sched_wakeup_new")
-int BPF_PROG(sched_wakeup_new, struct task_struct *p)
+SEC("raw_tracepoint/sched_wakeup_new")
+int sched_wakeup_new(struct bpf_raw_tracepoint_args *ctx)
 {
-	return trace_enqueue(p->pid);
+	struct task_struct *p = (struct task_struct *)ctx->args[0];
+	return trace_enqueue(BPF_CORE_READ(p, pid), BPF_CORE_READ(p, cpu));
 }
 
-SEC("tp_btf/sched_switch")
-int BPF_PROG(sched_switch, bool preempt, struct task_struct *prev, struct task_struct *next)
+
+SEC("raw_tracepoint/sched_switch")
+int sched_switch(struct bpf_raw_tracepoint_args *ctx)
 {
+	struct task_struct *prev = (struct task_struct *)ctx->args[1];
+    struct task_struct *next= (struct task_struct *)ctx->args[2];
+
 	return handle_switch(ctx, prev, next);
 }
 
