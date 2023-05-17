@@ -50,17 +50,17 @@ func main() {
 	// BPF Programのアタッチ
 	tp1, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeup})
 	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
+		log.Fatalf("attaching sched_wakeup: %s", err)
 	}
 	defer tp1.Close()
 	tp2, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedWakeupNew})
 	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
+		log.Fatalf("attaching sched_wakeup_new: %s", err)
 	}
 	defer tp2.Close()
 	tp3, err := link.AttachTracing(link.TracingOptions{Program: bpfObjs.SchedSwitch})
 	if err != nil {
-		log.Fatalf("opening kprobe: %s", err)
+		log.Fatalf("atacching sched_switch: %s", err)
 	}
 	defer tp3.Close()
 

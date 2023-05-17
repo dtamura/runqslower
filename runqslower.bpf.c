@@ -54,7 +54,7 @@ static __always_inline __s64 get_task_state(void *task)
 }
 
 /* record enqueue timestamp */
-static int trace_enqueue(u32 pid)
+static int trace_enqueue(u32 pid, int target_cpu)
 {
 	u64 ts;
 
@@ -84,7 +84,7 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 
 	/* ivcsw: treat like an enqueue event and store timestamp */
 	if (get_task_state(prev) == TASK_RUNNING)
-		trace_enqueue(BPF_CORE_READ(prev, pid));
+		trace_enqueue(BPF_CORE_READ(prev, pid), BPF_CORE_READ(prev, cpu));
 
 	pid = BPF_CORE_READ(next, pid);
 
@@ -116,13 +116,13 @@ static int handle_switch(void *ctx, struct task_struct *prev, struct task_struct
 SEC("tp_btf/sched_wakeup")
 int BPF_PROG(sched_wakeup, struct task_struct *p)
 {
-	return trace_enqueue(p->pid);
+	return trace_enqueue(BPF_CORE_READ(p, pid), BPF_CORE_READ(p, cpu));
 }
 
 SEC("tp_btf/sched_wakeup_new")
 int BPF_PROG(sched_wakeup_new, struct task_struct *p)
 {
-	return trace_enqueue(p->pid);
+	return trace_enqueue(BPF_CORE_READ(p, pid), BPF_CORE_READ(p, cpu));
 }
 
 SEC("tp_btf/sched_switch")
